@@ -58,6 +58,12 @@ spec:
         targetRevision: main
         path: .
         helm:
+          # Pinned so every cluster's resources are just named "drone-cam",
+          # not "drone-cam-<cluster>-drone-cam" (the Application name above
+          # needs the cluster suffix to stay unique within openshift-gitops,
+          # but that has no bearing on naming inside each target cluster's own
+          # namespace — each cluster is already its own namespace).
+          releaseName: drone-cam
           values: |
             service:
               type: NodePort
