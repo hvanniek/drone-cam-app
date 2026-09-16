@@ -27,6 +27,14 @@ spec:
 # NOT use ACM's pull model (no skip-reconcile annotation / no
 # pull-to-ocm-managed-cluster label), so the target cluster does not need
 # OpenShift GitOps installed locally — only a registered ArgoCD cluster secret.
+#
+# service.type=NodePort is forced on every cluster (not just MicroShift) so
+# there's always an IP:port way in, independent of whether a cluster's Route
+# actually resolves. Some MicroShift devices (e.g. snuc-ee2400) have the
+# optional route-controller-manager enabled but no real base domain configured
+# for it, so their Route gets admitted under the placeholder apps.example.com
+# and is not reachable by hostname — NodePort on the device's own IP sidesteps
+# that entirely. Harmless on real OpenShift: the Route keeps working as well.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -49,6 +57,11 @@ spec:
         repoURL: https://github.com/hvanniek/drone-cam-app.git
         targetRevision: main
         path: .
+        helm:
+          values: |
+            service:
+              type: NodePort
+              nodePort: 30081
       destination:
         server: "{{server}}"
         namespace: drone-cam
