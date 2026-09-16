@@ -10,7 +10,8 @@ from the hub. Originally split out of the `edge-management-demo` workspace's
 | File | Purpose |
 |---|---|
 | `Chart.yaml`, `values.yaml`, `templates/` | The Helm chart: Deployment, Service, and a conditional Route. |
-| `argocd-application.yaml` | Example ArgoCD `Application` pointing at this chart. |
+| `argocd-application-dev-acp2.yaml` | ArgoCD `Application` deploying this chart to `dev-acp2` (managed OpenShift). |
+| `argocd-application-snuc-ee2400.yaml` | ArgoCD `Application` deploying this chart to `snuc-ee2400` (managed MicroShift device). |
 
 ## How it targets both cluster types with one chart
 
@@ -19,8 +20,8 @@ the destination cluster (`.Capabilities.APIVersions.Has "route.openshift.io/v1"`
 see `templates/_helpers.tpl`). ArgoCD populates Helm's `.Capabilities` from the
 actual destination cluster it's syncing to, so:
 
-- synced to a full OpenShift cluster (e.g. `dev-acp4` once provisioned) -> Route created
-- synced to a plain MicroShift cluster (e.g. an `rhde/fleet.yaml` device) -> Service only
+- synced to `dev-acp2` (full OpenShift) -> Route created
+- synced to `snuc-ee2400` (plain MicroShift) -> Service only
 
 Override with `route.enabled: "true"|"false"` in values if a MicroShift
 cluster has the optional route-controller-manager RPM installed, or if you
@@ -34,13 +35,13 @@ helm template drone-cam .                                          # microshift-
 helm template drone-cam . --api-versions route.openshift.io/v1     # openshift-like
 ```
 
-To deploy via ArgoCD, edit `argocd-application.yaml`'s `spec.destination` —
-the target managed cluster (`name` if it's registered as an ArgoCD cluster
-secret, e.g. via ACM's GitOpsCluster addon; otherwise `server` with its API
-URL) — then:
+To deploy to another managed cluster, copy one of the `argocd-application-*.yaml`
+files, rename it, and change `metadata.name` and `spec.destination.name` to the
+target cluster (must already be registered as an ArgoCD cluster secret in
+`openshift-gitops` — see the hub's `systems-argocd-cluster-placement`). Then:
 
 ```console
-oc apply -f argocd-application.yaml
+oc apply -f argocd-application-<cluster>.yaml
 ```
 
 No image pull secret is needed — `quay.io/kenosborn/drone-cam` is public.

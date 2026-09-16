@@ -1,0 +1,38 @@
+---
+# ArgoCD Application for the drone-cam demo app, targeting the dev-acp2
+# managed OpenShift cluster.
+#
+# This chart auto-detects the Route API on the destination cluster (see
+# values.yaml / templates/route.yaml). dev-acp2 is real OpenShift, so this one
+# gets a Route; see argocd-application-snuc-ee2400.yaml for the same chart
+# deployed to a MicroShift device (Deployment + Service only, no Route).
+#
+# destination.name is the ManagedCluster name, which doubles as the ArgoCD
+# cluster secret name once registered (requires the cluster's ManagedClusterSet
+# to be included in the hub's GitOpsCluster placement — see
+# systems-argocd-cluster-placement in openshift-gitops).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: drone-cam
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/hvanniek/drone-cam-app.git
+    targetRevision: main
+    path: .
+
+  destination:
+    name: dev-acp2 # ManagedCluster/ArgoCD cluster secret name
+    namespace: drone-cam
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,31 @@
+---
+# ArgoCD Application for the drone-cam demo app, targeting the snuc-ee2400
+# MicroShift device (managed via FlightCtl + ACM import, see
+# edge-management-demo/rhde/). Same chart as argocd-application-dev-acp2.yaml —
+# route.yaml auto-detects there's no route.openshift.io/v1 API here and skips
+# the Route, deploying just the Deployment + Service.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: drone-cam-snuc-ee2400
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/hvanniek/drone-cam-app.git
+    targetRevision: main
+    path: .
+
+  destination:
+    name: snuc-ee2400 # ManagedCluster/ArgoCD cluster secret name
+    namespace: drone-cam
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
