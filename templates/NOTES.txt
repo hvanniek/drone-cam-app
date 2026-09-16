@@ -1,0 +1,12 @@
+drone-cam deployed as {{ include "drone-cam.fullname" . }} in {{ .Release.Namespace }}.
+
+{{- if eq (include "drone-cam.routeEnabled" .) "true" }}
+Route API detected — a Route was created:
+  oc get route {{ include "drone-cam.fullname" . }} -n {{ .Release.Namespace }}
+{{- else }}
+No Route API on this cluster — reach the app via the Service ({{ .Values.service.type }}):
+  oc get svc {{ include "drone-cam.fullname" . }} -n {{ .Release.Namespace }}
+{{- if eq .Values.service.type "ClusterIP" }}
+  (set service.type=NodePort in values to reach it without a Route/Ingress)
+{{- end }}
+{{- end }}

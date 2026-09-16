@@ -1,0 +1,21 @@
+{{- if eq (include "drone-cam.routeEnabled" .) "true" }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "drone-cam.fullname" . }}
+  labels:
+    {{- include "drone-cam.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.route.host }}
+  host: {{ . }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "drone-cam.fullname" . }}
+  port:
+    targetPort: http
+  {{- with .Values.route.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
