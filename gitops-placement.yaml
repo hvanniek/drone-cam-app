@@ -70,7 +70,7 @@ spec:
               nodePort: 30081
       destination:
         server: "{{server}}"
-        namespace: drone-cam
+        namespace: abb-demo
       syncPolicy:
         automated:
           prune: true
