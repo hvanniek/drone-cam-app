@@ -29,8 +29,7 @@ spec:
     path: .
 
   destination:
-    # server: https://api.<managed-cluster>.houston.redhatedgelabs.com:6443
-    name: <managed-cluster-name> # ManagedCluster/ArgoCD cluster secret name
+    name: dev-acp2 # ManagedCluster/ArgoCD cluster secret name
     namespace: drone-cam
 
   syncPolicy:
