@@ -1,0 +1,60 @@
+---
+# Selects every ManagedCluster labeled application.drone-cam=true, from the
+# abb-demo ClusterSet (where dev-acp2/dev-acp3/dev-acp4/snuc-ee2400 live).
+# Adding/removing that label on a ManagedCluster is all it takes to add/remove
+# it from the drone-cam rollout below.
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: drone-cam-placement
+  namespace: openshift-gitops
+spec:
+  clusterSets:
+    - abb-demo
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            application.drone-cam: "true"
+---
+# Bridges the Placement above into ArgoCD's ApplicationSet clusterDecisionResource
+# generator (the acm-placement ConfigMap in openshift-gitops maps OCM
+# PlacementDecisions -> generator params, including {{name}} and {{server}}
+# for each matched cluster's registered ArgoCD cluster secret).
+#
+# This is a PUSH-model rollout: the hub's own ArgoCD syncs directly to each
+# matched cluster via destination.server, same as a plain Application. It does
+# NOT use ACM's pull model (no skip-reconcile annotation / no
+# pull-to-ocm-managed-cluster label), so the target cluster does not need
+# OpenShift GitOps installed locally — only a registered ArgoCD cluster secret.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: drone-cam
+  namespace: openshift-gitops
+spec:
+  generators:
+    - clusterDecisionResource:
+        configMapRef: acm-placement
+        labelSelector:
+          matchLabels:
+            cluster.open-cluster-management.io/placement: drone-cam-placement
+        requeueAfterSeconds: 180
+  template:
+    metadata:
+      name: "drone-cam-{{name}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/hvanniek/drone-cam-app.git
+        targetRevision: main
+        path: .
+      destination:
+        server: "{{server}}"
+        namespace: drone-cam
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

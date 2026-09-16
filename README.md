@@ -10,8 +10,23 @@ from the hub. Originally split out of the `edge-management-demo` workspace's
 | File | Purpose |
 |---|---|
 | `Chart.yaml`, `values.yaml`, `templates/` | The Helm chart: Deployment, Service, and a conditional Route. |
-| `argocd-application-dev-acp2.yaml` | ArgoCD `Application` deploying this chart to `dev-acp2` (managed OpenShift). |
-| `argocd-application-snuc-ee2400.yaml` | ArgoCD `Application` deploying this chart to `snuc-ee2400` (managed MicroShift device). |
+| `gitops-placement.yaml` | `Placement` (label-selector) + `ApplicationSet` that roll this chart out to every labeled managed cluster. |
+
+## Rollout: label-driven, not per-cluster files
+
+`gitops-placement.yaml`'s `Placement` matches any `ManagedCluster` in the
+`abb-demo` `ClusterSet` labeled `application.drone-cam=true`; its
+`ApplicationSet` turns each match into a push-model `Application` (named
+`drone-cam-<cluster>`) synced directly from the hub. To add or drop a cluster
+from the rollout, just label/unlabel it — no new files needed:
+
+```console
+oc label managedcluster <cluster-name> application.drone-cam=true
+```
+
+The cluster must already be registered as an ArgoCD cluster secret in
+`openshift-gitops` (see the hub's `systems-argocd-cluster-placement`) for the
+generator to resolve a `{{server}}` for it.
 
 ## How it targets both cluster types with one chart
 
@@ -35,13 +50,12 @@ helm template drone-cam .                                          # microshift-
 helm template drone-cam . --api-versions route.openshift.io/v1     # openshift-like
 ```
 
-To deploy to another managed cluster, copy one of the `argocd-application-*.yaml`
-files, rename it, and change `metadata.name` and `spec.destination.name` to the
-target cluster (must already be registered as an ArgoCD cluster secret in
-`openshift-gitops` — see the hub's `systems-argocd-cluster-placement`). Then:
+To stand up the rollout mechanism itself (one-time, on the hub):
 
 ```console
-oc apply -f argocd-application-<cluster>.yaml
+oc apply -f gitops-placement.yaml
 ```
+
+Then deploy to a cluster by labeling it (see above) — no further `oc apply` needed per cluster.
 
 No image pull secret is needed — `quay.io/kenosborn/drone-cam` is public.
